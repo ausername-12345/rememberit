@@ -48,43 +48,13 @@ app.post("/api/images", async (req, res) => {
     const { itemName } = req.body;
     if (!itemName) return res.status(400).json({ error: "Missing itemName" });
 
-    const ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-    const headers = {
-      "User-Agent": ua,
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-      "Referer": "https://www.google.com/",
-      "Sec-Fetch-Dest": "document",
-      "Sec-Fetch-Mode": "navigate",
-      "Sec-Fetch-Site": "same-origin",
-      "Upgrade-Insecure-Requests": "1",
-    };
+    const apiRes = await fetch(
+      `https://api.openverse.org/v1/images/?q=${encodeURIComponent(itemName)}&page_size=4&page=1`,
+      { headers: { "User-Agent": "RememberIt/1.0" } }
+    );
+    const data = await apiRes.json();
+    const images = (data.results || []).map(r => r.url).filter(Boolean).slice(0, 4);
 
-    const url = `https://www.google.com/search?q=${encodeURIComponent(itemName)}&tbm=isch`;
-    const response = await fetch(url, { headers });
-    const html = await response.text();
-
-    if (/captcha|sorry|unusual traffic/i.test(html) && html.length < 5000) {
-      return res.json({ images: [] });
-    }
-
-    const seen = new Set();
-    const add = (u) => { if (u && !seen.has(u)) { seen.add(u); } };
-
-    for (const m of html.matchAll(/"https:\/\/encrypted-tbn0\.gstatic\.com\/images[^"]+"/g)) {
-      add(m[0].replace(/^"|"$/g, "").replace(/\\u003d/g, "=").replace(/\\u0026/g, "&"));
-    }
-    for (const m of html.matchAll(/"(https?:\/\/[^"]+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^"]*)?)"/gi)) {
-      add(m[1].replace(/\\u003d/g, "=").replace(/\\u0026/g, "&"));
-    }
-    for (const m of html.matchAll(/imgurl\\x3d([^\\&"]+)/g)) {
-      try { add(decodeURIComponent(m[1])); } catch {}
-    }
-    for (const m of html.matchAll(/data-src="(https?:\/\/[^"]+)"/g)) {
-      add(m[1]);
-    }
-
-    const images = Array.from(seen).slice(0, 4);
     res.json({ images });
   } catch (err) {
     res.json({ images: [], error: err.message });
