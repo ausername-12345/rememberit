@@ -34,11 +34,12 @@ async function searchDuckDuckGo(query) {
 }
 
 app.post("/api/hf", async (req, res) => {
-  const token = process.env.HF_TOKEN;
-  if (!token) {
-    return res.status(500).json({ error: "HF_TOKEN not configured. Add it in Space Settings → Repository Secrets." });
-  }
   try {
+    const token = process.env.HF_TOKEN;
+    if (!token) {
+      return res.status(500).json({ error: "HF_TOKEN not configured" });
+    }
+
     const model = req.body.model || "microsoft/Phi-3-mini-4k-instruct";
     const messages = req.body.messages || [];
     const lastUserMsg = messages.filter((m) => m.role === "user").at(-1);
@@ -65,7 +66,7 @@ app.post("/api/hf", async (req, res) => {
     };
 
     const hfRes = await fetch(
-      `https://api-inference.huggingface.co/models/${model}/v1/chat/completions`,
+      "https://api-inference.huggingface.co/v1/chat/completions",
       {
         method: "POST",
         headers: {
@@ -76,15 +77,25 @@ app.post("/api/hf", async (req, res) => {
       },
     );
 
-    const data = await hfRes.json();
-    if (!hfRes.ok) {
-      return res.status(hfRes.status).json({
-        error: data.error || data.message || `HF API returned ${hfRes.status}`,
+    let data;
+    try {
+      data = await hfRes.json();
+    } catch {
+      const text = await hfRes.text();
+      return res.status(502).json({
+        error: `HF API returned non-JSON (${hfRes.status}): ${text.slice(0, 500)}`,
       });
     }
+
+    if (!hfRes.ok) {
+      return res.status(hfRes.status).json({
+        error: data.error?.message || data.error || JSON.stringify(data).slice(0, 300),
+      });
+    }
+
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message || String(err) });
   }
 });
 
