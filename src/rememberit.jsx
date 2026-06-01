@@ -71,7 +71,7 @@ Rules:
 - confidence: a short honest phrase, e.g. "High confidence", "Fairly confident", "Moderate — a few possibilities", "Low confidence — hard to say without more context"
 - description: 2–3 sentences covering what it is, what it looks like, and what it is used for
 - alternatives: 0–1 entries if highly confident; 2–3 entries if uncertain; must be genuinely distinct items not synonyms
-- images: when confidence is high, include 2–3 relevant direct image URLs of the item (from Wikimedia, Commons, or known CDNs). Otherwise empty array.
+- images: always an empty array
 - searchLinks: always exactly these three, with the itemName URL-encoded:
   {"label":"Amazon","url":"https://www.amazon.com/s?k=ENCODED"},
   {"label":"Google Shopping","url":"https://www.google.com/search?q=ENCODED&tbm=shop"},

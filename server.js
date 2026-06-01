@@ -48,33 +48,23 @@ app.post("/api/images", async (req, res) => {
     const { itemName } = req.body;
     if (!itemName) return res.status(400).json({ error: "Missing itemName" });
 
-    const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-    const headers = { "User-Agent": ua, "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Language": "en-US,en;q=0.5" };
+    const searchRes = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(itemName)}&format=json&srlimit=3`,
+      { headers: { "User-Agent": "RememberIt/1.0" } }
+    );
+    const searchData = await searchRes.json();
+    const pages = searchData?.query?.search || [];
+    if (!pages.length) return res.json({ images: [] });
 
-    const searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(itemName)}&iax=images&ia=images`;
-    const pageRes = await fetch(searchUrl, { headers });
-    const html = await pageRes.text();
-
-    let vqd = null;
-    const patterns = [/vqd=["'](\d+(?:-\d+)*)["']/, /vqd["']?\s*[:=]\s*["'](\d+(?:-\d+)*)["']/];
-    for (const p of patterns) {
-      const m = html.match(p);
-      if (m) { vqd = m[1]; break; }
-    }
-    if (!vqd) {
-      const scriptTag = html.match(/<script[^>]*>([^<]*)<\/script>/gi);
-      if (scriptTag) {
-        for (const s of scriptTag) {
-          const m = s.match(/["'](\d+(?:-\d+)*)["']/);
-          if (m) { vqd = m[1]; break; }
-        }
-      }
-    }
-    if (!vqd) return res.json({ images: [] });
-
-    const imgRes = await fetch(`https://duckduckgo.com/i.js?q=${encodeURIComponent(itemName)}&o=json&vqd=${vqd}`, { headers });
+    const titles = pages.slice(0, 2).map(p => p.title);
+    const imgRes = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(titles.join("|"))}&prop=pageimages&format=json&pithumbsize=300`,
+      { headers: { "User-Agent": "RememberIt/1.0" } }
+    );
     const imgData = await imgRes.json();
-    const images = (imgData.results || []).map(r => r.image).filter(Boolean).slice(0, 4);
+    const imgPages = imgData?.query?.pages || {};
+    const images = Object.values(imgPages).map(p => p.thumbnail?.source).filter(Boolean).slice(0, 3);
+
     res.json({ images });
   } catch (err) {
     res.json({ images: [], error: err.message });
