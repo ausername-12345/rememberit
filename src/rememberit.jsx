@@ -113,7 +113,7 @@ export default function RememberIt() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "mistralai/Mistral-7B-Instruct-v0.3",
+          model: "microsoft/Phi-3-mini-4k-instruct",
           max_tokens: 1000,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
