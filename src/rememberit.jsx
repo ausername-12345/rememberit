@@ -113,7 +113,7 @@ export default function RememberIt() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "HuggingFaceH4/zephyr-7b-beta",
+          model: "llama3-70b-8192",
           max_tokens: 1000,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
