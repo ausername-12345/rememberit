@@ -51,31 +51,25 @@ app.post("/api/hf", async (req, res) => {
 app.get("/api/test-lib", async (_, res) => {
   const results = {};
 
-  // Check raw /api/tasks
   try {
     const r = await fetch("https://huggingface.co/api/tasks");
-    const text = await r.text();
-    results["api_tasks"] = { status: r.status, body: text.slice(0, 2000) };
-  } catch (e) {
-    results["api_tasks_error"] = e.message;
-  }
+    const data = await r.json();
+    const keys = Object.keys(data);
+    results["available_tasks"] = keys;
 
-  // Check raw /api/tasks/conversational
-  try {
-    const r = await fetch("https://huggingface.co/api/tasks/conversational");
-    const text = await r.text();
-    results["api_tasks_conversational"] = { status: r.status, body: text.slice(0, 2000) };
+    // Find conversational/text-generation models
+    for (const task of ["conversational", "text-generation", "text2text-generation"]) {
+      const taskData = data[task];
+      if (taskData) {
+        results[task] = {
+          models: (taskData.models || []).slice(0, 15).map(m => ({ id: m.id, provider: m.provider })),
+        };
+      } else {
+        results[task] = null;
+      }
+    }
   } catch (e) {
-    results["api_tasks_conversational_error"] = e.message;
-  }
-
-  // Check the /api/tasks endpoint with text-generation
-  try {
-    const r = await fetch("https://huggingface.co/api/tasks/text-generation");
-    const text = await r.text();
-    results["api_tasks_textgen"] = { status: r.status, body: text.slice(0, 2000) };
-  } catch (e) {
-    results["api_tasks_textgen_error"] = e.message;
+    results["error"] = e.message;
   }
 
   res.json(results);
