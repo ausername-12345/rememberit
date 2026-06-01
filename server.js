@@ -116,23 +116,24 @@ app.get("/api/test-network", async (_, res) => {
     }
   }
   const token = process.env.HF_TOKEN;
+  const basic = token ? Buffer.from(`user:${token}`).toString("base64") : "";
   for (const cfg of [
     { url: "https://google.com" },
     { url: "https://huggingface.co" },
     { url: "https://huggingface.co/api/inference", auth: true },
-    { url: "https://huggingface.co/api/inference/models/HuggingFaceH4/zephyr-7b-beta", auth: true, method: "POST", body: JSON.stringify({ inputs: "hello", parameters: { max_new_tokens: 10 } }) },
-    { url: "https://huggingface.co/models/HuggingFaceH4/zephyr-7b-beta" },
-    { url: "https://router.huggingface.co" },
-    { url: "https://api-inference.huggingface.co" },
+    { url: "https://huggingface.co/api/inference", auth: "basic" },
+    { url: "https://huggingface.co/api/inference/models/HuggingFaceH4/zephyr-7b-beta", auth: "bearer", method: "POST", body: JSON.stringify({ inputs: "hello", parameters: { max_new_tokens: 10 } }) },
   ]) {
     try {
       const headers = { "User-Agent": "node" };
-      if (cfg.auth && token) headers.Authorization = `Bearer ${token}`;
+      if (cfg.auth === true) headers.Authorization = `Bearer ${token}`;
+      if (cfg.auth === "bearer" && token) headers.Authorization = `Bearer ${token}`;
+      if (cfg.auth === "basic" && token) headers.Authorization = `Basic ${basic}`;
       const opts = { redirect: "manual", headers, method: cfg.method || "GET" };
       if (cfg.method === "POST") opts.body = cfg.body;
-      const r = await fetchWithTimeout(cfg.url, opts, 5000);
+      const r = await fetchWithTimeout(cfg.url, opts, 8000);
       const text = await r.text();
-      results[cfg.url] = { status: r.status, body: text.slice(0, 200) };
+      results[cfg.url] = { status: r.status, body: text.slice(0, 300) };
     } catch (e) {
       results[cfg.url] = { error: e.message || String(e), code: e.cause?.code || e.code };
     }
