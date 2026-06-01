@@ -115,15 +115,21 @@ app.get("/api/test-network", async (_, res) => {
       results[host] = { dns_error: e.code || e.message };
     }
   }
+  const token = process.env.HF_TOKEN;
   for (const url of [
     "https://google.com",
     "https://huggingface.co",
+    "https://huggingface.co/api/inference",
     "https://huggingface.co/models/HuggingFaceH4/zephyr-7b-beta",
     "https://router.huggingface.co",
     "https://api-inference.huggingface.co",
   ]) {
     try {
-      const r = await fetchWithTimeout(url, { redirect: "manual" }, 5000);
+      const headers = { "User-Agent": "node" };
+      if (token && (url.includes("huggingface.co/api/") || url.includes("api-inference"))) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      const r = await fetchWithTimeout(url, { redirect: "manual", headers }, 5000);
       results[url] = { status: r.status, ok: r.ok };
     } catch (e) {
       results[url] = { error: e.message || String(e), code: e.cause?.code || e.code };
