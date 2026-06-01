@@ -46,9 +46,9 @@ const LogoMark = ({ size = 60, coral, teal }) => (
       stroke={coral} strokeWidth="8.5" strokeLinecap="round" fill="none" />
     <line x1="60" y1="55" x2="76" y2="71"
       stroke={coral} strokeWidth="8.5" strokeLinecap="round" />
-    <path d="M 52,47 C 52,38 68,38 68,48 C 68,56 60,56 60,61"
+    <path d="M 33,34 C 33,25 49,25 49,35 C 49,43 41,43 41,48"
       stroke={coral} strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    <circle cx="60" cy="68" r="4" fill={teal} />
+    <circle cx="41" cy="55" r="4" fill={teal} />
   </svg>
 );
 
