@@ -3,6 +3,7 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install
 COPY index.html vite.config.js server.js package.json ./
+COPY src/ ./src/
 RUN npx vite build
 
 FROM node:20-slim
