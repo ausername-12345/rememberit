@@ -48,23 +48,34 @@ app.post("/api/images", async (req, res) => {
     const { itemName } = req.body;
     if (!itemName) return res.status(400).json({ error: "Missing itemName" });
 
-    const key = process.env.IPAI_SK;
-    if (!key) return res.status(500).json({ error: "IPAI_SK not configured" });
-
-    const openai = new OpenAI({ apiKey: key, baseURL: BASE });
-    const out = await openai.chat.completions.create({
-      model: "llama3-70b-8192",
-      messages: [
-        { role: "system", content: "You return ONLY a JSON array of up to 3 direct image URLs of the item. Prefer Wikimedia/Commons URLs. Return empty array [] if unsure. No markdown, no text." },
-        { role: "user", content: `Direct image URLs for: ${itemName}` }
-      ],
-      max_tokens: 500,
+    const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(itemName)}&tbm=isch`;
+    const response = await fetch(googleUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      }
     });
+    const html = await response.text();
 
-    const txt = out.choices?.[0]?.message?.content || "[]";
-    const clean = txt.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-    const urls = JSON.parse(clean);
-    res.json({ images: Array.isArray(urls) ? urls : [] });
+    const urls = [];
+    const seen = new Set();
+
+    const patterns = [
+      /"(https:\/\/encrypted-tbn0\.gstatic\.com\/images[^"]+)"/g,
+      /"(https:\/\/[^"]+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^"]*)?)"/gi,
+    ];
+
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(html)) !== null) {
+        const u = match[1].replace(/\\u003d/g, "=").replace(/\\u0026/g, "&");
+        if (!seen.has(u) && urls.length < 6) {
+          seen.add(u);
+          urls.push(u);
+        }
+      }
+    }
+
+    res.json({ images: urls.slice(0, 4) });
   } catch (err) {
     res.json({ images: [], error: err.message });
   }
