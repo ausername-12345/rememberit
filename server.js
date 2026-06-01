@@ -52,27 +52,32 @@ app.get("/api/test-lib", async (_, res) => {
   const results = {};
   const token = process.env.HF_TOKEN;
 
-  const combos = [
-    { provider: "together", model: "mistralai/Mixtral-8x7B-Instruct-v0.1" },
-    { provider: "together", model: "meta-llama/Meta-Llama-3-8B-Instruct" },
-    { provider: "novita", model: "mistralai/Mixtral-8x7B-Instruct-v0.1" },
-    { provider: "replicate", model: "mistralai/Mixtral-8x7B-Instruct-v0.1" },
-    { provider: "fal-ai", model: "mistralai/Mixtral-8x7B-Instruct-v0.1" },
-  ];
+  // Check what models are available for conversational task
+  try {
+    const r = await fetch("https://huggingface.co/api/tasks?task=conversational", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await r.json();
+    results["conversational_models"] = {
+      count: data.models?.length || 0,
+      models: (data.models || []).slice(0, 10).map(m => ({ id: m.id, provider: m.provider })),
+    };
+  } catch (e) {
+    results["conversational_models_error"] = e.message;
+  }
 
-  for (const { provider, model } of combos) {
-    const url = `https://router.huggingface.co/${provider}/v1/chat/completions`;
-    try {
-      const r = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ model, messages: [{ role: "user", content: "Say hi" }], max_tokens: 10 }),
-      });
-      const body = await r.text();
-      results[`${provider}/${model}`] = { status: r.status, body: body.slice(0, 200) };
-    } catch (e) {
-      results[`${provider}/${model}`] = { error: e.message };
-    }
+  // Also check text-generation task
+  try {
+    const r = await fetch("https://huggingface.co/api/tasks?task=text-generation", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await r.json();
+    results["textgen_models"] = {
+      count: data.models?.length || 0,
+      models: (data.models || []).slice(0, 10).map(m => ({ id: m.id, provider: m.provider })),
+    };
+  } catch (e) {
+    results["textgen_models_error"] = e.message;
   }
 
   res.json(results);
