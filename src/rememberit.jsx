@@ -61,17 +61,17 @@ const EXAMPLES = [
   "tiny brush for cleaning between teeth",
 ];
 
-const SYSTEM_PROMPT = `You are an expert at identifying everyday items from vague or colloquial descriptions. Always use web search to verify your answer before responding.
+const SYSTEM_PROMPT = `You are an expert at identifying everyday items from vague or colloquial descriptions.
 
 You MUST respond with ONLY a valid raw JSON object — no markdown, no backtick fences, no preamble, no trailing text whatsoever. Exactly this shape:
-{"itemName":"...","confidence":"...","description":"...","alternatives":[],"images":["url1","url2"],"searchLinks":[{"label":"...","url":"..."}]}
+{"itemName":"...","confidence":"...","description":"...","alternatives":[],"images":[],"searchLinks":[{"label":"...","url":"..."}]}
 
 Rules:
 - itemName: the most common, widely searchable product name
 - confidence: a short honest phrase, e.g. "High confidence", "Fairly confident", "Moderate — a few possibilities", "Low confidence — hard to say without more context"
 - description: 2–3 sentences covering what it is, what it looks like, and what it is used for
 - alternatives: 0–1 entries if highly confident; 2–3 entries if uncertain; must be genuinely distinct items not synonyms
-- images: 2–3 direct image URLs (.jpg/.png/.webp) found in web search results that clearly show the identified item; only include URLs you actually found via search, never invent them
+- images: always an empty array
 - searchLinks: always exactly these three, with the itemName URL-encoded:
   {"label":"Amazon","url":"https://www.amazon.com/s?k=ENCODED"},
   {"label":"Google Shopping","url":"https://www.google.com/search?q=ENCODED&tbm=shop"},
@@ -109,19 +109,21 @@ export default function RememberIt() {
     const raw = q.trim(); if (!raw) return;
     setLoading(true); setError(null); setResult(null); setImgErrors([]);
     try {
-      const res = await fetch("/api/anthropic", {
+      const res = await fetch("/api/hf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514", max_tokens: 1000,
-          system: SYSTEM_PROMPT,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{ role: "user", content: `Identify this item: "${raw}"\nReturn ONLY the JSON object.` }],
+          model: "mistralai/Mistral-7B-Instruct-v0.3",
+          max_tokens: 1000,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: `Identify this item: "${raw}"\nReturn ONLY the JSON object.` },
+          ],
         }),
       });
       if (!res.ok) throw new Error(`API ${res.status}`);
       const data = await res.json();
-      const txt = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
+      const txt = (data.choices?.[0]?.message?.content || "").trim();
       const clean = txt.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
       const parsed = JSON.parse(clean);
       setResult(parsed);
@@ -363,7 +365,7 @@ export default function RememberIt() {
         <footer style={{ marginTop:"2.75rem", paddingTop:"1.25rem", borderTop:`1px solid ${T.border}`, display:"flex", flexDirection:"column", gap:6 }}>
           <p style={{ fontSize:12.5, color:T.textMuted, margin:0, textAlign:"center" }}>
             <strong style={{ color:T.text }}>How it works:</strong>{" "}
-            Describe anything in plain language and we search the web in real time to identify it and find where to buy it.
+            Describe anything in plain language and we'll identify it and find where to buy it.
           </p>
           <p style={{ fontSize:11.5, color:T.textFaint, margin:0, textAlign:"center" }}>
             We may earn a commission from purchases made through links on this site.
