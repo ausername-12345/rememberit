@@ -50,34 +50,32 @@ app.post("/api/hf", async (req, res) => {
 
 app.get("/api/test-lib", async (_, res) => {
   const results = {};
-  const token = process.env.HF_TOKEN;
 
-  // Check what models are available for conversational task
+  // Check raw /api/tasks
   try {
-    const r = await fetch("https://huggingface.co/api/tasks?task=conversational", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await r.json();
-    results["conversational_models"] = {
-      count: data.models?.length || 0,
-      models: (data.models || []).slice(0, 10).map(m => ({ id: m.id, provider: m.provider })),
-    };
+    const r = await fetch("https://huggingface.co/api/tasks");
+    const text = await r.text();
+    results["api_tasks"] = { status: r.status, body: text.slice(0, 2000) };
   } catch (e) {
-    results["conversational_models_error"] = e.message;
+    results["api_tasks_error"] = e.message;
   }
 
-  // Also check text-generation task
+  // Check raw /api/tasks/conversational
   try {
-    const r = await fetch("https://huggingface.co/api/tasks?task=text-generation", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await r.json();
-    results["textgen_models"] = {
-      count: data.models?.length || 0,
-      models: (data.models || []).slice(0, 10).map(m => ({ id: m.id, provider: m.provider })),
-    };
+    const r = await fetch("https://huggingface.co/api/tasks/conversational");
+    const text = await r.text();
+    results["api_tasks_conversational"] = { status: r.status, body: text.slice(0, 2000) };
   } catch (e) {
-    results["textgen_models_error"] = e.message;
+    results["api_tasks_conversational_error"] = e.message;
+  }
+
+  // Check the /api/tasks endpoint with text-generation
+  try {
+    const r = await fetch("https://huggingface.co/api/tasks/text-generation");
+    const text = await r.text();
+    results["api_tasks_textgen"] = { status: r.status, body: text.slice(0, 2000) };
+  } catch (e) {
+    results["api_tasks_textgen_error"] = e.message;
   }
 
   res.json(results);
