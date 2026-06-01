@@ -9,14 +9,21 @@ const PORT = process.env.PORT || 7860;
 
 app.use(express.json({ limit: "1mb" }));
 
+async function fetchWithTimeout(url, opts, ms = 10000) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 async function searchDuckDuckGo(query) {
   try {
     const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
+    const res = await fetchWithTimeout(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
     });
     const html = await res.text();
     const $ = cheerio.load(html);
@@ -28,7 +35,8 @@ async function searchDuckDuckGo(query) {
       if (title) results.push({ title, snippet, link });
     });
     return results.slice(0, 6);
-  } catch {
+  } catch (e) {
+    console.error("Search failed:", e.message);
     return [];
   }
 }
@@ -49,9 +57,7 @@ app.post("/api/hf", async (req, res) => {
     const searchContext =
       searchResults.length > 0
         ? "\n\nWeb search results:\n" +
-          searchResults
-            .map((r, i) => `${i + 1}. "${r.title}"\n   ${r.snippet}\n   URL: ${r.link}`)
-            .join("\n\n")
+          searchResults.map((r, i) => `${i + 1}. "${r.title}"\n   ${r.snippet}\n   URL: ${r.link}`).join("\n\n")
         : "";
 
     const body = {
@@ -65,16 +71,14 @@ app.post("/api/hf", async (req, res) => {
       ],
     };
 
-    const hfRes = await fetch(
+    const hfRes = await fetchWithTimeout(
       "https://api-inference.huggingface.co/v1/chat/completions",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
       },
+      30000,
     );
 
     let data;
@@ -82,21 +86,26 @@ app.post("/api/hf", async (req, res) => {
       data = await hfRes.json();
     } catch {
       const text = await hfRes.text();
-      return res.status(502).json({
-        error: `HF API returned non-JSON (${hfRes.status}): ${text.slice(0, 500)}`,
-      });
+      return res.status(502).json({ error: `HF returned non-JSON (${hfRes.status}): ${text.slice(0, 500)}` });
     }
 
     if (!hfRes.ok) {
-      return res.status(hfRes.status).json({
-        error: data.error?.message || data.error || JSON.stringify(data).slice(0, 300),
-      });
+      return res.status(hfRes.status).json({ error: data.error?.message || data.error || JSON.stringify(data).slice(0, 300) });
     }
 
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message || String(err) });
   }
+});
+
+app.get("/api/check", (_, res) => {
+  res.json({ ok: true, token: !!process.env.HF_TOKEN });
+});
+
+app.use((err, _req, res, _next) => {
+  console.error("Unhandled:", err);
+  res.status(500).json({ error: err.message || "Internal error" });
 });
 
 const distPath = join(__dirname, "dist");
