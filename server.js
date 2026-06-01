@@ -7,7 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 7860;
 
-const BASE = "https://sharktide-lightning.hf.space/v1";
+const BASE = "https://sharktide-lightning.hf.space/gen";
 
 app.use(express.json({ limit: "1mb" }));
 
