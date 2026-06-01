@@ -48,34 +48,34 @@ app.post("/api/images", async (req, res) => {
     const { itemName } = req.body;
     if (!itemName) return res.status(400).json({ error: "Missing itemName" });
 
-    const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(itemName)}&tbm=isch`;
-    const response = await fetch(googleUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-      }
-    });
-    const html = await response.text();
+    const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+    const headers = { "User-Agent": ua, "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Language": "en-US,en;q=0.5" };
 
-    const urls = [];
-    const seen = new Set();
+    const searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(itemName)}&iax=images&ia=images`;
+    const pageRes = await fetch(searchUrl, { headers });
+    const html = await pageRes.text();
 
-    const patterns = [
-      /"(https:\/\/encrypted-tbn0\.gstatic\.com\/images[^"]+)"/g,
-      /"(https:\/\/[^"]+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^"]*)?)"/gi,
-    ];
-
-    for (const pattern of patterns) {
-      let match;
-      while ((match = pattern.exec(html)) !== null) {
-        const u = match[1].replace(/\\u003d/g, "=").replace(/\\u0026/g, "&");
-        if (!seen.has(u) && urls.length < 6) {
-          seen.add(u);
-          urls.push(u);
+    let vqd = null;
+    const patterns = [/vqd=["'](\d+(?:-\d+)*)["']/, /vqd["']?\s*[:=]\s*["'](\d+(?:-\d+)*)["']/];
+    for (const p of patterns) {
+      const m = html.match(p);
+      if (m) { vqd = m[1]; break; }
+    }
+    if (!vqd) {
+      const scriptTag = html.match(/<script[^>]*>([^<]*)<\/script>/gi);
+      if (scriptTag) {
+        for (const s of scriptTag) {
+          const m = s.match(/["'](\d+(?:-\d+)*)["']/);
+          if (m) { vqd = m[1]; break; }
         }
       }
     }
+    if (!vqd) return res.json({ images: [] });
 
-    res.json({ images: urls.slice(0, 4) });
+    const imgRes = await fetch(`https://duckduckgo.com/i.js?q=${encodeURIComponent(itemName)}&o=json&vqd=${vqd}`, { headers });
+    const imgData = await imgRes.json();
+    const images = (imgData.results || []).map(r => r.image).filter(Boolean).slice(0, 4);
+    res.json({ images });
   } catch (err) {
     res.json({ images: [], error: err.message });
   }
