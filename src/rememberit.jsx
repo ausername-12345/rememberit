@@ -71,7 +71,7 @@ Rules:
 - confidence: a short honest phrase, e.g. "High confidence", "Fairly confident", "Moderate — a few possibilities", "Low confidence — hard to say without more context"
 - description: 2–3 sentences covering what it is, what it looks like, and what it is used for
 - alternatives: 0–1 entries if highly confident; 2–3 entries if uncertain; must be genuinely distinct items not synonyms
-- images: always an empty array
+- images: when confidence is high, include 2–3 relevant direct image URLs of the item (from Wikimedia, Commons, or known CDNs). Otherwise empty array.
 - searchLinks: always exactly these three, with the itemName URL-encoded:
   {"label":"Amazon","url":"https://www.amazon.com/s?k=ENCODED"},
   {"label":"Google Shopping","url":"https://www.google.com/search?q=ENCODED&tbm=shop"},
@@ -103,7 +103,21 @@ export default function RememberIt() {
   const [history, setHistory] = useState([]);
   const [animKey, setAnimKey] = useState(0);
   const [imgErrors, setImgErrors] = useState([]);
+  const [imagesLoading, setImagesLoading] = useState(false);
   const inputRef = useRef(null);
+
+  const fetchImages = async (itemName) => {
+    try {
+      const res = await fetch("/api/images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemName }),
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.images || [];
+    } catch { return []; }
+  };
 
   const identify = async (q) => {
     const raw = q.trim(); if (!raw) return;
@@ -132,6 +146,12 @@ export default function RememberIt() {
         const deduped = prev.filter(h => h.result.itemName.toLowerCase() !== parsed.itemName.toLowerCase());
         return [{ id: Date.now(), query: raw, result: parsed }, ...deduped].slice(0, 5);
       });
+      if (getConfLevel(parsed.confidence) === "high" && !parsed.images?.length) {
+        setImagesLoading(true);
+        const urls = await fetchImages(parsed.itemName);
+        if (urls.length) setResult(prev => ({ ...prev, images: urls }));
+        setImagesLoading(false);
+      }
     } catch (e) {
       setError(e.message?.includes("JSON")
         ? "Got an unexpected response — try rephrasing your description."
@@ -271,7 +291,7 @@ export default function RememberIt() {
                 <h2 style={{ fontSize:27, fontWeight:800, margin:0, color:T.coral, letterSpacing:"-0.025em", lineHeight:1.1 }}>
                   {result.itemName}
                 </h2>
-                {(!result.images?.length || result.images.every((_, i) => imgErrors[i])) && (
+                {!imagesLoading && (!result.images?.length || result.images.every((_, i) => imgErrors[i])) && (
                   <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="ri-link"
                     style={{ fontSize:12, fontWeight:600, color:T.tealDark, textDecoration:"none", background:T.tealLight, borderRadius:20, padding:"5px 12px", border:`1px solid ${T.tealBorder}`, whiteSpace:"nowrap", display:"flex", alignItems:"center", gap:5, transition:"opacity 0.12s" }}>
                     <ImageIcon size={12}/> See images
@@ -280,6 +300,11 @@ export default function RememberIt() {
               </div>
               {(() => {
                 const imgs = result.images || [];
+                if (imagesLoading) return (
+                  <div style={{ display:"flex", gap:8, marginBottom:14, height:90, alignItems:"center", justifyContent:"center", background:T.surface, borderRadius:11, border:`1px solid ${T.border}` }}>
+                    <Loader2 size={18} style={{animation:"spin 0.85s linear infinite", color:T.textFaint}}/>
+                  </div>
+                );
                 if (!imgs.length) return null;
                 const anyVisible = imgs.some((_, i) => !imgErrors[i]);
                 if (!anyVisible) return null;

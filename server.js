@@ -43,6 +43,33 @@ app.post("/api/hf", async (req, res) => {
   }
 });
 
+app.post("/api/images", async (req, res) => {
+  try {
+    const { itemName } = req.body;
+    if (!itemName) return res.status(400).json({ error: "Missing itemName" });
+
+    const key = process.env.IPAI_SK;
+    if (!key) return res.status(500).json({ error: "IPAI_SK not configured" });
+
+    const openai = new OpenAI({ apiKey: key, baseURL: BASE });
+    const out = await openai.chat.completions.create({
+      model: "llama3-70b-8192",
+      messages: [
+        { role: "system", content: "You return ONLY a JSON array of up to 3 direct image URLs of the item. Prefer Wikimedia/Commons URLs. Return empty array [] if unsure. No markdown, no text." },
+        { role: "user", content: `Direct image URLs for: ${itemName}` }
+      ],
+      max_tokens: 500,
+    });
+
+    const txt = out.choices?.[0]?.message?.content || "[]";
+    const clean = txt.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    const urls = JSON.parse(clean);
+    res.json({ images: Array.isArray(urls) ? urls : [] });
+  } catch (err) {
+    res.json({ images: [], error: err.message });
+  }
+});
+
 app.get("/api/test-lib", async (_, res) => {
   const results = {};
   const key = process.env.IPAI_SK;
