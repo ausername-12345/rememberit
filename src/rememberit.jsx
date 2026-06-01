@@ -164,6 +164,7 @@ export default function RememberIt() {
   return (
     <div style={{ background: T.bg, minHeight: "100vh", fontFamily: "'Inter','Segoe UI',system-ui,sans-serif", color: T.text, transition: "background 0.25s,color 0.2s" }}>
       <style>{`
+        html, body { margin:0; padding:0; background:${T.bg}; }
         @keyframes fadeRise { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
         @keyframes spin      { to { transform:rotate(360deg); } }
         .ri-result { animation: fadeRise 0.45s cubic-bezier(0.22,1,0.36,1) both; }
