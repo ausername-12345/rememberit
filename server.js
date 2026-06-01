@@ -49,18 +49,55 @@ app.post("/api/hf", async (req, res) => {
 });
 
 app.get("/api/test-lib", async (_, res) => {
+  const results = {};
+  const token = process.env.HF_TOKEN;
+
   try {
-    const token = process.env.HF_TOKEN;
+    // Direct test: call router.huggingface.co directly
+    const routes = [
+      "https://router.huggingface.co/auto/v1/chat/completions",
+      "https://router.huggingface.co/hf-inference/v1/chat/completions",
+      "https://router.huggingface.co/replicate/v1/chat/completions",
+    ];
+    for (const url of routes) {
+      try {
+        const r = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            model: "HuggingFaceH4/zephyr-7b-beta",
+            messages: [{ role: "user", content: "Say hi" }],
+            max_tokens: 10,
+          }),
+        });
+        results[url] = { status: r.status, body: (await r.text()).slice(0, 300) };
+      } catch (e) {
+        results[url] = { error: e.message };
+      }
+    }
+  } catch (err) {
+    results._error = err.message;
+  }
+
+  // Also test the HF lib
+  try {
     const hf = new HfInference(token);
     const result = await hf.chatCompletion({
       model: "HuggingFaceH4/zephyr-7b-beta",
       messages: [{ role: "user", content: "Say OK in one word" }],
       max_tokens: 10,
     });
-    res.json({ ok: true, result });
+    results.lib = { ok: true, result };
   } catch (err) {
-    res.json({ ok: false, error: err.message, stack: err.stack?.slice(0, 500), cause: err.cause?.message, body: err.response_body?.slice(0, 200) });
+    results.lib = {
+      ok: false,
+      error: err.message,
+      status: err.httpResponse?.status,
+      body: typeof err.httpResponse?.body === "object" ? JSON.stringify(err.httpResponse.body).slice(0, 500) : String(err.httpResponse?.body).slice(0, 500),
+    };
   }
+
+  res.json(results);
 });
 
 app.use((err, _req, res, _next) => {
