@@ -52,15 +52,16 @@ app.get("/api/test-lib", async (_, res) => {
   const results = {};
   const token = process.env.HF_TOKEN;
 
-  const models = [
-    "microsoft/Phi-3-mini-4k-instruct",
-    "Qwen/Qwen2.5-7B-Instruct",
-    "mistralai/Mistral-7B-Instruct-v0.3",
-    "HuggingFaceH4/zephyr-7b-beta",
+  const combos = [
+    { provider: "together", model: "mistralai/Mixtral-8x7B-Instruct-v0.1" },
+    { provider: "together", model: "meta-llama/Meta-Llama-3-8B-Instruct" },
+    { provider: "novita", model: "mistralai/Mixtral-8x7B-Instruct-v0.1" },
+    { provider: "replicate", model: "mistralai/Mixtral-8x7B-Instruct-v0.1" },
+    { provider: "fal-ai", model: "mistralai/Mixtral-8x7B-Instruct-v0.1" },
   ];
 
-  for (const model of models) {
-    const url = "https://router.huggingface.co/hf-inference/v1/chat/completions";
+  for (const { provider, model } of combos) {
+    const url = `https://router.huggingface.co/${provider}/v1/chat/completions`;
     try {
       const r = await fetch(url, {
         method: "POST",
@@ -68,9 +69,9 @@ app.get("/api/test-lib", async (_, res) => {
         body: JSON.stringify({ model, messages: [{ role: "user", content: "Say hi" }], max_tokens: 10 }),
       });
       const body = await r.text();
-      results[model] = { status: r.status, body: body.slice(0, 200) };
+      results[`${provider}/${model}`] = { status: r.status, body: body.slice(0, 200) };
     } catch (e) {
-      results[model] = { error: e.message };
+      results[`${provider}/${model}`] = { error: e.message };
     }
   }
 
