@@ -61,7 +61,7 @@ const EXAMPLES = [
   "tiny brush for cleaning between teeth",
 ];
 
-const SYSTEM_PROMPT = `You are an expert at identifying everyday items from vague or colloquial descriptions. Use the web search results provided in your system message to verify each answer.
+const SYSTEM_PROMPT = `You are an expert at identifying everyday items from vague or colloquial descriptions.
 
 You MUST respond with ONLY a valid raw JSON object — no markdown, no backtick fences, no preamble, no trailing text whatsoever. Exactly this shape:
 {"itemName":"...","confidence":"...","description":"...","alternatives":[],"images":[],"searchLinks":[{"label":"...","url":"..."}]}
