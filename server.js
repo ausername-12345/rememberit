@@ -9,16 +9,14 @@ const PORT = process.env.PORT || 7860;
 
 app.use(express.json({ limit: "1mb" }));
 
-import { resolve4, resolveCname, resolveAny } from "dns/promises";
-
 app.get("/api/check", async (_, res) => {
-  const dns = {};
-  for (const host of ["api-inference.huggingface.co", "huggingface.co"]) {
-    try { dns[host] = { a: await resolve4(host) }; } catch (e) { dns[host] = { a_error: e.code }; }
-    try { dns[host].cname = await resolveCname(host); } catch (e) { dns[host].cname_error = e.code; }
-    try { dns[host].any = await resolveAny(host); } catch (e) { dns[host].any_error = e.code; }
+  const env = {};
+  const interesting = ["HF_TOKEN", "HF_API_TOKEN", "HF_INFERENCE_ENDPOINT", "SPACE_ID", "SPACE_TITLE", "HUGGINGFACEHUB_API_TOKEN", "API_TOKEN"];
+  for (const key of interesting) {
+    if (process.env[key]) env[key] = process.env[key].length > 10 ? process.env[key].slice(0, 8) + "..." : "(set)";
+    else env[key] = "(not set)";
   }
-  res.json({ ok: true, token: !!process.env.HF_TOKEN, dns });
+  res.json({ ok: true, env });
 });
 
 app.post("/api/hf", async (req, res) => {
