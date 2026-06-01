@@ -29,8 +29,6 @@ app.post("/api/hf", async (req, res) => {
     const hf = new HfInference(token);
     const model = req.body.model || "HuggingFaceH4/zephyr-7b-beta";
     const messages = req.body.messages || [];
-    const lastUserMsg = messages.filter((m) => m.role === "user").at(-1);
-    const userQuery = lastUserMsg?.content || "";
 
     const maxTokens = req.body.max_tokens || 1000;
 
@@ -42,7 +40,26 @@ app.post("/api/hf", async (req, res) => {
 
     res.json(out);
   } catch (err) {
-    res.status(500).json({ error: err.message || String(err) });
+    console.error("HF API error:", err);
+    const msg = err.message || String(err);
+    const cause = err.cause ? String(err.cause) : "";
+    const body = err.response_body ? String(err.response_body).slice(0, 500) : "";
+    res.status(500).json({ error: msg + (cause ? " — " + cause : "") + (body ? " | body: " + body : "") });
+  }
+});
+
+app.get("/api/test-lib", async (_, res) => {
+  try {
+    const token = process.env.HF_TOKEN;
+    const hf = new HfInference(token);
+    const result = await hf.chatCompletion({
+      model: "HuggingFaceH4/zephyr-7b-beta",
+      messages: [{ role: "user", content: "Say OK in one word" }],
+      max_tokens: 10,
+    });
+    res.json({ ok: true, result });
+  } catch (err) {
+    res.json({ ok: false, error: err.message, stack: err.stack?.slice(0, 500), cause: err.cause?.message, body: err.response_body?.slice(0, 200) });
   }
 });
 
