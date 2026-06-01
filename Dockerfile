@@ -2,8 +2,7 @@ FROM node:20-slim AS builder
 WORKDIR /app
 COPY package.json ./
 RUN npm install
-COPY index.html vite.config.js ./
-COPY src/ ./src/
+COPY index.html vite.config.js server.js package.json ./
 RUN npx vite build
 
 FROM node:20-slim
