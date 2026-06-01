@@ -103,6 +103,33 @@ app.get("/api/check", (_, res) => {
   res.json({ ok: true, token: !!process.env.HF_TOKEN });
 });
 
+app.post("/api/test-hf", async (req, res) => {
+  try {
+    const token = process.env.HF_TOKEN;
+    const model = req.body.model || "HuggingFaceH4/zephyr-7b-beta";
+    const body = {
+      model,
+      max_tokens: 100,
+      messages: [
+        { role: "user", content: "Say hello in one word" },
+      ],
+    };
+    const hfRes = await fetchWithTimeout(
+      `https://api-inference.huggingface.co/models/${model}/v1/chat/completions`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      },
+      30000,
+    );
+    const text = await hfRes.text();
+    res.status(hfRes.status).json({ status: hfRes.status, body: text.slice(0, 1000) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use((err, _req, res, _next) => {
   console.error("Unhandled:", err);
   res.status(500).json({ error: err.message || "Internal error" });
