@@ -48,7 +48,7 @@ app.post("/api/hf", async (req, res) => {
       return res.status(500).json({ error: "HF_TOKEN not configured" });
     }
 
-    const model = req.body.model || "microsoft/Phi-3-mini-4k-instruct";
+    const model = req.body.model || "HuggingFaceH4/zephyr-7b-beta";
     const messages = req.body.messages || [];
     const lastUserMsg = messages.filter((m) => m.role === "user").at(-1);
     const userQuery = lastUserMsg?.content || "";
@@ -72,7 +72,7 @@ app.post("/api/hf", async (req, res) => {
     };
 
     const hfRes = await fetchWithTimeout(
-      "https://api-inference.huggingface.co/v1/chat/completions",
+      `https://api-inference.huggingface.co/models/${model}/v1/chat/completions`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
