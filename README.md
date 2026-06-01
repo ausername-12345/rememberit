@@ -1,8 +1,8 @@
 ---
 title: Remember It
 emoji: 🔍
-colorFrom: coral
-colorTo: teal
+colorFrom: red
+colorTo: blue
 sdk: docker
 pinned: false
 ---
