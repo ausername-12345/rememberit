@@ -61,7 +61,7 @@ const EXAMPLES = [
   "tiny brush for cleaning between teeth",
 ];
 
-const SYSTEM_PROMPT = `You are an expert at identifying everyday items from vague or colloquial descriptions.
+const SYSTEM_PROMPT = `You are an expert at identifying everyday items from vague or colloquial descriptions. Use the web search results provided in your system message to verify each answer.
 
 You MUST respond with ONLY a valid raw JSON object — no markdown, no backtick fences, no preamble, no trailing text whatsoever. Exactly this shape:
 {"itemName":"...","confidence":"...","description":"...","alternatives":[],"images":[],"searchLinks":[{"label":"...","url":"..."}]}
@@ -365,7 +365,7 @@ export default function RememberIt() {
         <footer style={{ marginTop:"2.75rem", paddingTop:"1.25rem", borderTop:`1px solid ${T.border}`, display:"flex", flexDirection:"column", gap:6 }}>
           <p style={{ fontSize:12.5, color:T.textMuted, margin:0, textAlign:"center" }}>
             <strong style={{ color:T.text }}>How it works:</strong>{" "}
-            Describe anything in plain language and we'll identify it and find where to buy it.
+            Describe anything in plain language and we search the web in real time to identify it and find where to buy it.
           </p>
           <p style={{ fontSize:11.5, color:T.textFaint, margin:0, textAlign:"center" }}>
             We may earn a commission from purchases made through links on this site.
