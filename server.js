@@ -103,6 +103,23 @@ app.get("/api/check", (_, res) => {
   res.json({ ok: true, token: !!process.env.HF_TOKEN });
 });
 
+app.get("/api/test-network", async (_, res) => {
+  const results = {};
+  for (const url of [
+    "https://google.com",
+    "https://api-inference.huggingface.co",
+    `https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta`,
+  ]) {
+    try {
+      const r = await fetchWithTimeout(url, {}, 5000);
+      results[url] = { ok: r.ok, status: r.status };
+    } catch (e) {
+      results[url] = { error: e.message || String(e) };
+    }
+  }
+  res.json(results);
+});
+
 app.post("/api/test-hf", async (req, res) => {
   try {
     const token = process.env.HF_TOKEN;
