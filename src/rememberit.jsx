@@ -67,7 +67,7 @@ You MUST respond with ONLY a valid raw JSON object — no markdown, no backtick 
 {"itemName":"...","confidence":"...","description":"...","alternatives":[],"images":[],"searchLinks":[{"label":"...","url":"..."}]}
 
 Rules:
-- itemName: the most common, widely searchable product name
+-   itemName: the precise, specific name of the item — not a paraphrase of the user's description. Use the most correct technical or widely-recognized term.
 - confidence: a short honest phrase, e.g. "High confidence", "Fairly confident", "Moderate — a few possibilities", "Low confidence — hard to say without more context"
 - description: 2–3 sentences covering what it is, what it looks like, and what it is used for
 - alternatives: 0–1 entries if highly confident; 2–3 entries if uncertain; must be genuinely distinct items not synonyms
