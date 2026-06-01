@@ -50,26 +50,39 @@ app.post("/api/hf", async (req, res) => {
 
 app.get("/api/test-lib", async (_, res) => {
   const results = {};
+  const token = process.env.HF_TOKEN;
 
-  try {
-    const r = await fetch("https://huggingface.co/api/tasks");
-    const data = await r.json();
-    const keys = Object.keys(data);
-    results["available_tasks"] = keys;
-
-    // Find conversational/text-generation models
-    for (const task of ["conversational", "text-generation", "text2text-generation"]) {
-      const taskData = data[task];
-      if (taskData) {
-        results[task] = {
-          models: (taskData.models || []).slice(0, 15).map(m => ({ id: m.id, provider: m.provider })),
-        };
-      } else {
-        results[task] = null;
-      }
+  // Try direct model inference on huggingface.co
+  const models = ["google/gemma-2-2b-it", "gpt2", "Qwen/Qwen2.5-7B-Instruct-1M"];
+  for (const model of models) {
+    try {
+      const r = await fetch(`https://huggingface.co/${model}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          inputs: "What is a jar opener? Answer in one sentence.",
+          parameters: { max_new_tokens: 50 },
+        }),
+      });
+      const text = await r.text();
+      results[`model_${model}`] = { status: r.status, body: text.slice(0, 300) };
+    } catch (e) {
+      results[`model_${model}`] = { error: e.message };
     }
+  }
+
+  // Also try the /api/models/{model} endpoint
+  try {
+    const r = await fetch("https://huggingface.co/api/models/google/gemma-2-2b-it", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const d = await r.json();
+    results["model_info"] = { pipeline_tag: d.pipeline_tag, inference: d.inference, cardData: d.cardData ? "present" : "none" };
   } catch (e) {
-    results["error"] = e.message;
+    results["model_info_error"] = e.message;
   }
 
   res.json(results);
