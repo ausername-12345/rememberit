@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import {
   Search, ShoppingCart, Store, Image as ImageIcon, Clock,
   ChevronRight, Sun, Moon, Tag, HelpCircle, Loader2,
-  Sparkles, RotateCcw,
+  Sparkles, RotateCcw, Wrench, Sofa, Shirt, Hammer,
 } from "lucide-react";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -72,10 +72,7 @@ Rules:
 - description: 2–3 sentences covering what it is, what it looks like, and what it is used for
 - alternatives: 0–1 entries if highly confident; 2–3 entries if uncertain; must be genuinely distinct items not synonyms
 - images: always an empty array
-- searchLinks: always exactly these three, with the itemName URL-encoded:
-  {"label":"Amazon","url":"https://www.amazon.com/s?k=ENCODED"},
-  {"label":"Google Shopping","url":"https://www.google.com/search?q=ENCODED&tbm=shop"},
-  {"label":"Etsy","url":"https://www.etsy.com/search?q=ENCODED"}`;
+- searchLinks: 2–4 stores where this item is typically sold. Each has a label (store name) and a search URL with the itemName URL-encoded. Pick real, specific stores — hardware items at Home Depot, electronics at Best Buy, furniture at IKEA or Wayfair, general items at Amazon or Walmart, handmade at eBay, etc. Never include stores that don't sell this type of item.`;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getConfLevel = (c = "") => {
@@ -175,8 +172,16 @@ export default function RememberIt() {
   const storeConfig = (lbl) => {
     const map = {
       Amazon:           { bg: T.coral,              text: "#fff",        Icon: ShoppingCart },
-      "Google Shopping":{ bg: T.teal,               text: "#fff",        Icon: Tag },
+      Walmart:          { bg: "#0071DC",             text: "#fff",        Icon: ShoppingCart },
+      Target:           { bg: "#CC0000",             text: "#fff",        Icon: ShoppingCart },
+      eBay:             { bg: "#0064D2",             text: "#fff",        Icon: Tag },
       Etsy:             { bg: T.storeEtsy.bg,        text: T.storeEtsy.text, Icon: Store },
+      "Home Depot":     { bg: "#F96302",             text: "#fff",        Icon: Wrench },
+      Lowe:            { bg: "#004990",             text: "#fff",        Icon: Wrench },
+      "Best Buy":       { bg: "#0046BE",             text: "#fff",        Icon: ShoppingCart },
+      IKEA:             { bg: "#003399",             text: "#fff",        Icon: Sofa },
+      Wayfair:          { bg: "#7B4B3A",             text: "#fff",        Icon: Sofa },
+      "Apple Store":    { bg: "#555",                text: "#fff",        Icon: Store },
     };
     return map[lbl] || { bg: T.text, text: T.bg, Icon: ShoppingCart };
   };
