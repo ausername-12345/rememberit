@@ -29,7 +29,7 @@ app.post("/api/hf", async (req, res) => {
     }
 
     const openai = new OpenAI({ apiKey: key, baseURL: BASE });
-    const model = req.body.model || "llama3-70b-8192";
+    const model = req.body.model || "llama-3.3-70b-versatile";
     const messages = req.body.messages || [];
     const maxTokens = req.body.max_tokens || 1000;
 
